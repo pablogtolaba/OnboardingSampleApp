@@ -4,7 +4,9 @@ const {
   createCustomer, 
   createTenant, 
   createDefaultOnboardingSteps, 
-  calculateProgress 
+  calculateProgress,
+  normalizeCustomerInfo,
+  validateCustomerInfo
 } = require('./index');
 
 describe('Domain Models', () => {
@@ -72,6 +74,60 @@ describe('Domain Models', () => {
       steps.forEach(step => {
         assert.strictEqual(step.status, 'pending');
       });
+    });
+  });
+});
+
+describe('Customer Info', () => {
+  const validInfo = {
+    name: 'ABC Accounting',
+    industry: 'Accounting',
+    region: 'North America',
+    contactEmail: 'ops@abc-accounting.example.com'
+  };
+
+  describe('normalizeCustomerInfo', () => {
+    it('should trim text, lowercase email and match region case-insensitively', () => {
+      const info = normalizeCustomerInfo({
+        name: '  ABC Accounting ',
+        industry: ' Accounting',
+        region: 'emea',
+        contactEmail: ' Ops@ABC.example.com '
+      });
+
+      assert.deepStrictEqual(info, {
+        name: 'ABC Accounting',
+        industry: 'Accounting',
+        region: 'EMEA',
+        contactEmail: 'ops@abc.example.com'
+      });
+    });
+
+    it('should treat missing or non-string values as empty', () => {
+      const info = normalizeCustomerInfo({ name: 42 });
+
+      assert.strictEqual(info.name, '');
+      assert.strictEqual(info.contactEmail, '');
+    });
+  });
+
+  describe('validateCustomerInfo', () => {
+    it('should return no errors for complete info', () => {
+      assert.deepStrictEqual(validateCustomerInfo(validInfo), {});
+    });
+
+    it('should flag every missing field', () => {
+      const errors = validateCustomerInfo(normalizeCustomerInfo({}));
+
+      assert.deepStrictEqual(Object.keys(errors).sort(), ['contactEmail', 'industry', 'name', 'region']);
+    });
+
+    it('should reject an invalid email and unknown region', () => {
+      const errors = validateCustomerInfo({ ...validInfo, contactEmail: 'not-an-email', region: 'Mars' });
+
+      assert.ok(errors.contactEmail);
+      assert.ok(errors.region);
+      assert.strictEqual(errors.name, undefined);
     });
   });
 });

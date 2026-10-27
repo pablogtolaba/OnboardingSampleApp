@@ -25,8 +25,15 @@ test.describe('Onboarding Dashboard', () => {
     await page.goto('/');
 
     // Wait for data to load and verify example customer is shown
-    await expect(page.locator('.customer-card')).toBeVisible();
-    await expect(page.locator('.customer-card h3')).toContainText('Acme Corporation');
+    await expect(page.locator('.customer-card h3', { hasText: 'Acme Corporation' })).toBeVisible();
+  });
+
+  test('should show sample-data customers in onboarding queue', async ({ page }) => {
+    await page.goto('/');
+
+    for (const name of ['ABC Accounting', 'XYZ Financial Services', 'Premier Bookkeeping']) {
+      await expect(page.locator('.customer-card h3', { hasText: name })).toBeVisible();
+    }
   });
 
   test('should switch between tabs', async ({ page }) => {
@@ -35,7 +42,7 @@ test.describe('Onboarding Dashboard', () => {
     // Click on Customer Info tab
     await page.getByRole('button', { name: 'Customer Info' }).click();
     
-    // Verify placeholder content is shown
-    await expect(page.locator('.placeholder h2')).toContainText('Customer Info');
+    // Verify Customer Info content is shown
+    await expect(page.getByRole('heading', { name: 'Customer Info' })).toBeVisible();
   });
 });

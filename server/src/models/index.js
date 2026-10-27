@@ -43,7 +43,7 @@
  */
 function createCustomer(data) {
   return {
-    id: data.id || `cust_${Date.now()}`,
+    id: data.id || `cust_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     name: data.name || '',
     industry: data.industry || '',
     region: data.region || '',
@@ -65,6 +65,44 @@ function createTenant(data) {
     plan: data.plan || 'starter',
     createdAt: data.createdAt || new Date().toISOString()
   };
+}
+
+const REGIONS = ['North America', 'EMEA', 'APAC', 'LATAM'];
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function asTrimmedString(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+/**
+ * Normalizes raw customer input: trims text, lowercases email,
+ * and matches region case-insensitively against the known regions
+ * @param {Object} data
+ * @returns {Pick<Customer, 'name' | 'industry' | 'region' | 'contactEmail'>}
+ */
+function normalizeCustomerInfo(data = {}) {
+  const region = asTrimmedString(data.region);
+  return {
+    name: asTrimmedString(data.name),
+    industry: asTrimmedString(data.industry),
+    region: REGIONS.find(r => r.toLowerCase() === region.toLowerCase()) || region,
+    contactEmail: asTrimmedString(data.contactEmail).toLowerCase()
+  };
+}
+
+/**
+ * Validates normalized customer info
+ * @param {Partial<Customer>} info
+ * @returns {Object<string, string>} Field name -> error message (empty when valid)
+ */
+function validateCustomerInfo(info) {
+  const errors = {};
+  if (!info.name) errors.name = 'Name is required';
+  if (!info.industry) errors.industry = 'Industry is required';
+  if (!REGIONS.includes(info.region)) errors.region = `Region must be one of: ${REGIONS.join(', ')}`;
+  if (!EMAIL_PATTERN.test(info.contactEmail || '')) errors.contactEmail = 'A valid contact email is required';
+  return errors;
 }
 
 /**
@@ -95,5 +133,8 @@ module.exports = {
   createCustomer,
   createTenant,
   createDefaultOnboardingSteps,
-  calculateProgress
+  calculateProgress,
+  normalizeCustomerInfo,
+  validateCustomerInfo,
+  REGIONS
 };
